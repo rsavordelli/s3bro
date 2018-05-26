@@ -60,15 +60,19 @@ def clean_bucket(bucket, prefix):
     click.echo('\nStart cleaning...')
     bkt = s3.Bucket(bucket)
     iterator = bkt.object_versions.filter( Prefix=prefix )
+    del_counter = 0
     objects = []
     for obj in iterator:
         objects.append( {'Key': obj.key, 'VersionId': obj.id} )
         logging.warning('Sending to deletion: %s %s' % (obj.key, obj.id))
         if len(objects) == 1000:
+            del_counter += 1000
             response = bkt.delete_objects(Delete={'Objects': objects})
             objects = []
     if len(objects) > 0:
-        click.echo('You have only %s keys, deleting'%len(objects))
+        del_counter += len(objects)
+        click.echo('Almost done, only more %s keys to delete'%len(objects))
+        click.echo("Total Keys deleted: {}".format(del_counter))
         response = bkt.delete_objects( Delete={'Objects': objects} )
     else:
         print('it seem that you got no keys')
