@@ -1,0 +1,3 @@
+boto3>=1.4.4
+botocore>=1.5.78
+click>=6.7
