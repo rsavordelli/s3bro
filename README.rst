@@ -32,12 +32,11 @@ s3bro purge --bucket rsavordelli
 what if you need to restore all your keys from glacier storage class? Or just some of them?
 
 >>>
-➜  ~ s3bro restore --bucket jusbroo-glacier --prefix glacier --days 10 --type Expedited --exclude .html --workers 10
-Initiating Expedited restore for jusbroo-glacier/glacier...
+➜  ~ s3bro restore --bucket yourBucket --prefix glacier --days 10 --type Expedited --exclude .html --workers 10
+Initiating Expedited restore for yourBucket/glacier...
 Restoring keys for 10 days
-==============================
-All versions: False
-==============================
+Versions: False
+===========================
 Restoration completed: glacier/River Flows In You - A Love Note (CM Remix).mp3 until "Sat, 03 Mar 2018 00:00:00 GMT"
 Submitting restoration request: glacier/asd.js
 Restoration completed: glacier/Yiruma - River Flows In You (English Version).mp3 until "Sat, 03 Mar 2018 00:00:00 GMT"
@@ -70,6 +69,7 @@ Available Commands
 - purge_
 - scan-bucket_
 - scan-objects_
+- scan-objects-v2_
 - tail_
 - find-unencrypted_
 
@@ -83,8 +83,10 @@ Examples
     # s3bro restore --help
     # s3bro restore --bucket bucketName --prefix myglacierPrefix --days 20 --type Bulk
     # s3bro restore --bucket bucketName --prefix myglacierPrefix --days 20 --type Standard --include .css --versions
+    # s3bro restore --bucket bucketName --prefix myglacierPrefix --days 20 --type Expedited --permanent-restore --storage-class ONEZONE_IA
     # s3bro purge --bucket bucketName
     # s3bro scan-objects --bucket bucketName
+    # s3bro scan-objects-v2 --bucket bucketName --make-private
     # s3bro scan-bucket --all
     # s3bro tail --bucket bucketName --timeout 1
 
@@ -100,6 +102,7 @@ Restore Options
 ------------------
 >>>
 Usage: s3bro restore [OPTIONS] [RESTORE]...
+  restore S3 objects from Glacier Storage Class
 Options:
   -b, --bucket TEXT               bucket name  [required]
   -p, --prefix TEXT               prefix
@@ -109,14 +112,19 @@ Options:
   -v, --versions / --no-versions  [--no-versions is DEFAULT] - this option
                                   will make the restore to include all
                                   versions excluding delete markers
+  -pr, --permanent-restore        Move keys ALREADY restored from Glacier back
+                                  to a storage class of your choice
+  --storage-class [STANDARD|STANDARD_IA|ONEZONE_IA]
+                                  The StorageClass type to use with
+                                  --permanent-restore [default is STANDARD]
   -urd, --update-restore-date / --do-not-update-restore-date
                                   If passed, it will change the restore date
                                   for already restored key
   -in, --include TEXT             Only restore keys that matches with a given
                                   string, you can add multiples times by
                                   passing --include multiple times
-  -ex, --exclude TEXT             Do not restore if the key name matches with a
-                                  given pattern, you can add multiple patterns
+  -ex, --exclude TEXT             Do not restore if key name matches with a
+                                  given pattern,you can add multiple patterns
                                   by inputting
   --workers INTEGER               How many helpers to include in task, default
                                   is 10
@@ -134,8 +142,8 @@ DEBUG - similar to boto3 debug level with additional information
 WARNING - will print some threading information and Keys excluded during the iteration (exclude, include, storage-class, delete-marker, etc)
 
 * the option --workers allows you to specify how many workers will consume the list. Calculate max 5 workers per core
-
 * the option --update-restore-date can be used to "extend" a key that is already restored. It will send a new "expiry" date to the object
+* the option --permanent-restore will copy the data from glacier back to a storage class of your Choice (combine this with --storage-class)
 
 ***************
 purge
@@ -181,7 +189,6 @@ Options:
                                   logging type
   --help                          Show this message and exit.
 
-
 ***************
 scan-objects
 ***************
@@ -205,6 +212,39 @@ Options:
 Scan-Object Details
 ^^^^^^^^^^^^^^^^^^^^
 * scan-objects only scan current versions of your objects
+
+***************
+scan-objects-v2
+***************
+  scan-objects-v2 is a simplified version of scan-objects and introduce new features like --make-private (make public keys, private).
+  It's focused on looking only for Public Keys (Everyone's access), it will not print permission to another aws accounts.
+
+Scan-Object-V2 Options
+-----------------------
+
+>>>
+Usage: s3bro scan-objects-v2 [OPTIONS] [SCAN_OBJECTS_V2]...
+  scan object ACLs (V2) - The V2 only look for Everyone permissios, while
+  the scan-objects will look for all ACLs - The V2 is capable to reset ACLs
+  back to private (Everyone)
+Options:
+  -b, --bucket TEXT               Bucket name  [required]
+  -p, --prefix TEXT               prefix name - optional
+  -mp, --make-private             Make all keys with public ACL private
+  -v, --versions / --no-versions  [--no-versions is DEFAULT] - this option
+                                  will make the restore to include all
+                                  versions excluding delete markers
+  --workers INTEGER               How many helpers to include in task, default
+                                  is 10
+  --log-level [INFO|ERROR|DEBUG|WARNING]
+                                  logging type
+  --help                          Show this message and exit.
+
+Scan-Object-V2 Details
+^^^^^^^^^^^^^^^^^^^^^^^
+* scan-objects support versions
+* --make-private put a private acl in the object 
+
 
 ***************
 tail

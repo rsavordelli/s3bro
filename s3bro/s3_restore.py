@@ -74,7 +74,7 @@ def restore_versions(x):
 @rate_limited(50)
 def restore_default(x):
     s3r = boto3.resource( 's3' )
-    bucket, key, days, type, update_restore_date = x[0], x[1], x[2], x[3], x[4]
+    bucket, key, days, type, permanent_restore, restore_storage_class, update_restore_date = x[0], x[1], x[2], x[3], x[4], x[5], x[6]
     obj = s3r.Object(bucket, key)
     try:
         if obj.storage_class == 'GLACIER':
@@ -83,7 +83,7 @@ def restore_default(x):
                 obj.restore_object( RestoreRequest={'Days': days, 'GlacierJobParameters': {'Tier': type}} )
             # Print out objects whose restoration is on-going
             elif 'ongoing-request="true"' in obj.restore:
-                click.echo('Restoration in-progress: %s' % obj.key)
+                click.echo('A restore request is already in-progress: %s' % obj.key)
             # Print out objects whose restoration is complete
             elif 'ongoing-request="false"' in obj.restore:
                 date = obj.restore.split('expiry-date=')[1]
@@ -91,7 +91,26 @@ def restore_default(x):
                     click.echo('[Updating date] - Restoration complete: %s for %s days from now' % (obj.key, days))
                     obj.restore_object( RestoreRequest={'Days': days, 'GlacierJobParameters': {'Tier': type}} )
                 else:
-                    click.echo('Restoration completed: %s until %s' % (obj.key, date))
+                    if permanent_restore:
+                        click.echo('[Moving to %s] Restoration completed: %s until %s' % (restore_storage_class, obj.key, date))
+                        copy_source = {
+                            'Bucket': bucket,
+                            'Key': key
+                        }
+                        extra_args = {'StorageClass': restore_storage_class}
+                        bucket = s3r.Bucket(bucket)
+                        obj_res = bucket.Object(key)
+                        try:
+                            obj_res.copy(copy_source, ExtraArgs=extra_args)
+                        except ClientError as e:
+                            if e.response['ResponseMetadata']['HTTPStatusCode'] != 200:
+                                print("Failed to move %s from glacier with error %s" %(key, e.response))
+                                pass
+                        except Exception as e:
+                            print('[Something went wrong while moving from glacier] - %s %s' %(key, e))
+                            pass
+                    else:
+                        click.echo('Restoration completed: %s until %s' % (obj.key, date))
         else:
             logging.warning('[Key not in glacier] - Key: %s' % obj.key)
     except ClientError as e:
@@ -102,23 +121,21 @@ def restore_default(x):
         else:
             click.echo(err)
     except KeyError as e:
-        click.echo(e.response)
+        click.echo(e)
     except Exception as e:
         click.echo(e)
 
 
-def collect_keys(restore, bucket, prefix, days, type, versions, update_restore_date, workers, include, exclude):
+def collect_keys(restore, bucket, prefix, days, type, versions, permanent_restore, storage_class, update_restore_date, workers, include, exclude):
     s3r = boto3.resource( 's3' )
     startTime = time.time()
     bkt = s3r.Bucket(bucket)
     objects = []
     keys_proccessed = 0
-    click.echo('Initiating %s restore for %s/%s...\nRestoring keys for %s days\n' %(type, bucket, prefix, days) + 30*'=')
+    click.echo('Initiating %s restore for %s/%s...\nRestoring keys for %s days\nVersions: %s\n' %(type, bucket, prefix, days, versions) + 30*'=')
     if versions:
         iterator = bkt.object_versions.filter(Prefix=prefix)
-        click.echo('All versions: True\n' + 30*'=')
     else:
-        click.echo('All versions: False\n' + 30*'=')
         iterator = bkt.objects.filter( Prefix=prefix )
     processed = False
     for obj in iterator:
@@ -141,7 +158,7 @@ def collect_keys(restore, bucket, prefix, days, type, versions, update_restore_d
                 else:
                     objects.append( data )
             else:
-                data = [bucket, obj.key, days, type, update_restore_date]
+                data = [bucket, obj.key, days, type, permanent_restore, storage_class, update_restore_date]
                 if include:
                     if any( x in obj.key for x in include ):
                         objects.append(data)
@@ -159,16 +176,14 @@ def collect_keys(restore, bucket, prefix, days, type, versions, update_restore_d
                 multi_process(restore_versions, objects, workers)
             else:
                 multi_process(restore_default, objects, workers)
-            # click.echo('cleaning objects')
             del objects[:]
             processed = True
 
     if not processed:
-        # click.echo('There is only %s keys, running it in a single batch\n'%(len(objects)) + 30*'=')
         if versions:
             multi_process(restore_versions, objects, workers)
         else:
             multi_process(restore_default, objects, workers)
     elapsed = time.time() - startTime
     end = round(elapsed, 2)
-    click.echo('Total keys proccessed: %s in %ss' %(keys_proccessed, end))
+    click.echo('Total keys proccessed in total: %s in %ss' %(keys_proccessed, end))

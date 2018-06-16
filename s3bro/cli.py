@@ -4,6 +4,7 @@ from termcolor import colored
 from s3_restore import *
 from s3_purge import *
 from s3_permission import *
+from s3_permission_v2 import *
 from s3_tail import *
 from s3_encryption import *
 from __init__ import *
@@ -40,22 +41,27 @@ def abort_if_false(ctx, param, value):
 @click.option('--days', '-d', type=int, help='Days to keep the restore', required=True)
 @click.option('--type', '-t', type=click.Choice(['Standard', 'Expedited', 'Bulk']), help='restore type (Tier)', required=True)
 @click.option('--versions/--no-versions','-v', default=False, help='[--no-versions is DEFAULT] - this option will make the restore to include all versions excluding delete markers')
+@click.option('--permanent-restore', '-pr', is_flag=True, help="Move keys ALREADY restored from Glacier back to a storage class of your choice")
+@click.option('--storage-class', type=click.Choice(['STANDARD', 'STANDARD_IA', 'ONEZONE_IA']), help='The StorageClass type to use with --permanent-restore [default is STANDARD]', default='STANDARD')
 @click.option('--update-restore-date/--do-not-update-restore-date', '-urd', default=False, help='If passed, it will change the restore date for already restored key')
 @click.option('--include', '-in', type=str, multiple=True, help='Only restore keys that matches with a given string, you can add multiples times by passing --include multiple times')
 @click.option('--exclude', '-ex', type=str, multiple=True, help='Do not restore if key name matches with a given pattern,'
                                   'you can add multiple patterns by inputting')
 @click.option('--workers', type=int, help='How many helpers to include in task, default is 10', default=10)
 @click.option('--log-level', type=click.Choice(['INFO', 'ERROR', 'DEBUG', 'WARNING']), help='logging type', default='ERROR')
-def restore(restore, bucket, prefix, days, type, versions, update_restore_date, workers, include, exclude, log_level):
+def restore(restore, bucket, prefix, days, type, versions, permanent_restore, storage_class, update_restore_date, workers, include, exclude, log_level):
     """
-    restore glacier objects from s3
+    restore S3 objects from Glacier Storage Class
     """
+    if versions and permanent_restore:
+        print('Hey, --versions and --permanent-restore together is a bad combination')
+        quit()
     if type == "Expedited":
         print(colored('Note: ', 'yellow') + "Expedited requests will likely be throttled. If you want to avoid this please check: ")
         click.echo('https://docs.aws.amazon.com/AmazonS3/latest/dev/restoring-objects.html#restoring-objects-expedited-capacity')
         click.echo(30*'=')
     loglevel(log_level)
-    collect_keys(restore, bucket, prefix, days, type, versions, update_restore_date, workers, include, exclude)
+    collect_keys(restore, bucket, prefix, days, type, versions, permanent_restore, storage_class, update_restore_date, workers, include, exclude)
 
 
 @cli.command()
@@ -87,6 +93,24 @@ def scan_objects(scan_objects, bucket, prefix, workers, log_level):
     """
     loglevel(log_level)
     scan_key_perms(scan_objects, bucket, prefix, workers)
+
+
+@cli.command('scan-objects-v2')
+@click.argument('scan-objects-v2', nargs=-1)
+@click.option('--bucket','-b', type=str, help='Bucket name', required=True)
+@click.option('--prefix', '-p', type=str, default='', help='prefix name - optional')
+@click.option('--make-private', '-mp', is_flag=True, help='Make all keys with public ACL private')
+@click.option('--versions/--no-versions','-v', default=False, help='[--no-versions is DEFAULT] - this option will make the restore to include all versions excluding delete markers')
+@click.option('--workers', type=int, help='How many helpers to include in task, default is 10', default=10)
+@click.option('--log-level', type=click.Choice(['INFO', 'ERROR', 'DEBUG', 'WARNING']), help='logging type', default='ERROR')
+def scan_objects_v2(scan_objects_v2, bucket, prefix, versions, make_private, workers, log_level):
+    """
+    scan object ACLs (V2)
+    - The V2 only look for Everyone permissios, while the scan-objects will look for all ACLs
+    - The V2 is capable to reset ACLs back to private (Everyone)
+    """
+    loglevel(log_level)
+    scan_key_perms_v2(bucket, prefix, versions, make_private, workers)
 
 
 @cli.command('scan-bucket')

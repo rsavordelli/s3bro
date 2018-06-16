@@ -1,5 +1,11 @@
 # Changelog
-##[2.3]
+
+## [2.6]
+### Added
+- scan-object2-v2 added - it's a simplified version of scan-objects that allows you to reset permissions back to private and also supports --versions
+- restore option was changed. Added --permanent-restore and --storage-class.
+
+## [2.3]
 ### Fixed
 - bug fixes - small changes in error handling for scan-bucket
 - renamed some functions because the old name was weird

@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='s3bro',
-    version='2.5',
+    version='2.6',
     package_dir={'s3bro': 's3bro'},
     packages=['s3bro'],
     author='Rubem de Lima Savordelli',
