@@ -84,6 +84,7 @@ Examples
     # s3bro restore --bucket bucketName --prefix myglacierPrefix --days 20 --type Bulk
     # s3bro restore --bucket bucketName --prefix myglacierPrefix --days 20 --type Standard --include .css --versions
     # s3bro restore --bucket bucketName --prefix myglacierPrefix --days 20 --type Expedited --permanent-restore --storage-class ONEZONE_IA
+    # s3bro restore -b bucketName -p 123 --days 2 --type Expedited --permanent-restore --restore-to-bucket DestbucketName --storage-class ONEZONE_IA
     # s3bro purge --bucket bucketName
     # s3bro scan-objects --bucket bucketName
     # s3bro scan-objects-v2 --bucket bucketName --make-private
@@ -114,6 +115,9 @@ Options:
                                   versions excluding delete markers
   -pr, --permanent-restore        Move keys ALREADY restored from Glacier back
                                   to a storage class of your choice
+  -rtb, --restore-to-bucket TEXT  Copy keys ALREADY restored to a different
+                                  bucket. It can only be used in combination
+                                  with --permanent-restore
   --storage-class [STANDARD|STANDARD_IA|ONEZONE_IA]
                                   The StorageClass type to use with
                                   --permanent-restore [default is STANDARD]

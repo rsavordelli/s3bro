@@ -70,11 +70,31 @@ def restore_versions(x):
     except Exception as e:
         print(e)
 
+def copy_from_glacier(bucket, key, dest_bucket, dest_storage_class, date):
+    s3r = boto3.resource( 's3' )
+    click.echo('Restoration completed: %s until %s [Permanente restoring to %s - %s] ' % (key, date, dest_bucket, dest_storage_class))
+    copy_source = {
+        'Bucket': bucket,
+        'Key': key
+    }
+    extra_args = {'StorageClass': dest_storage_class}
+    bucket = s3r.Bucket(dest_bucket)
+    obj_res = bucket.Object(key)
+    try:
+        obj_res.copy(copy_source, ExtraArgs=extra_args)
+    except ClientError as e:
+        if e.response['ResponseMetadata']['HTTPStatusCode'] != 200:
+            print("Failed to move %s from glacier with error %s" %(key, e.response['Error']))
+            pass
+    except Exception as e:
+        print('[Something went wrong while moving from glacier] - %s %s' %(key, e))
+        pass
+
 
 @rate_limited(50)
 def restore_default(x):
     s3r = boto3.resource( 's3' )
-    bucket, key, days, type, permanent_restore, restore_storage_class, update_restore_date = x[0], x[1], x[2], x[3], x[4], x[5], x[6]
+    bucket, key, days, type, permanent_restore, restore_to_bucket, restore_storage_class, update_restore_date = x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7]
     obj = s3r.Object(bucket, key)
     try:
         if obj.storage_class == 'GLACIER':
@@ -92,25 +112,10 @@ def restore_default(x):
                     obj.restore_object( RestoreRequest={'Days': days, 'GlacierJobParameters': {'Tier': type}} )
                 else:
                     if permanent_restore:
-                        click.echo('[Moving to %s] Restoration completed: %s until %s' % (restore_storage_class, obj.key, date))
-                        copy_source = {
-                            'Bucket': bucket,
-                            'Key': key
-                        }
-                        extra_args = {'StorageClass': restore_storage_class}
-                        bucket = s3r.Bucket(bucket)
-                        obj_res = bucket.Object(key)
-                        try:
-                            obj_res.copy(copy_source, ExtraArgs=extra_args)
-                        except ClientError as e:
-                            if e.response['ResponseMetadata']['HTTPStatusCode'] != 200:
-                                print("Failed to move %s from glacier with error %s" %(key, e.response))
-                                pass
-                        except Exception as e:
-                            print('[Something went wrong while moving from glacier] - %s %s' %(key, e))
-                            pass
-                    else:
-                        click.echo('Restoration completed: %s until %s' % (obj.key, date))
+                        if restore_to_bucket:
+                            copy_from_glacier(bucket, key, restore_to_bucket, restore_storage_class, date)
+                        else:
+                            copy_from_glacier(bucket, key, bucket, restore_storage_class, date)
         else:
             logging.warning('[Key not in glacier] - Key: %s' % obj.key)
     except ClientError as e:
@@ -126,7 +131,7 @@ def restore_default(x):
         click.echo(e)
 
 
-def collect_keys(restore, bucket, prefix, days, type, versions, permanent_restore, storage_class, update_restore_date, workers, include, exclude):
+def collect_keys(restore, bucket, prefix, days, type, versions, permanent_restore, restore_to_bucket, storage_class, update_restore_date, workers, include, exclude):
     s3r = boto3.resource( 's3' )
     startTime = time.time()
     bkt = s3r.Bucket(bucket)
@@ -158,7 +163,7 @@ def collect_keys(restore, bucket, prefix, days, type, versions, permanent_restor
                 else:
                     objects.append( data )
             else:
-                data = [bucket, obj.key, days, type, permanent_restore, storage_class, update_restore_date]
+                data = [bucket, obj.key, days, type, permanent_restore, restore_to_bucket, storage_class, update_restore_date]
                 if include:
                     if any( x in obj.key for x in include ):
                         objects.append(data)

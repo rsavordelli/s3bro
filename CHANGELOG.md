@@ -1,4 +1,7 @@
 # Changelog
+## [2.7]
+### Added
+- --restore-to-bucket DestinationBucket - This options allows you to make a copy of already restored keys to a new bucket - keeping the original key in glacier
 
 ## [2.6]
 ### Added

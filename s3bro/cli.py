@@ -42,6 +42,7 @@ def abort_if_false(ctx, param, value):
 @click.option('--type', '-t', type=click.Choice(['Standard', 'Expedited', 'Bulk']), help='restore type (Tier)', required=True)
 @click.option('--versions/--no-versions','-v', default=False, help='[--no-versions is DEFAULT] - this option will make the restore to include all versions excluding delete markers')
 @click.option('--permanent-restore', '-pr', is_flag=True, help="Move keys ALREADY restored from Glacier back to a storage class of your choice")
+@click.option('--restore-to-bucket', '-rtb', type=str, help="Copy keys ALREADY restored to a different bucket. It can only be used in combination with --permanent-restore")
 @click.option('--storage-class', type=click.Choice(['STANDARD', 'STANDARD_IA', 'ONEZONE_IA']), help='The StorageClass type to use with --permanent-restore [default is STANDARD]', default='STANDARD')
 @click.option('--update-restore-date/--do-not-update-restore-date', '-urd', default=False, help='If passed, it will change the restore date for already restored key')
 @click.option('--include', '-in', type=str, multiple=True, help='Only restore keys that matches with a given string, you can add multiples times by passing --include multiple times')
@@ -49,7 +50,7 @@ def abort_if_false(ctx, param, value):
                                   'you can add multiple patterns by inputting')
 @click.option('--workers', type=int, help='How many helpers to include in task, default is 10', default=10)
 @click.option('--log-level', type=click.Choice(['INFO', 'ERROR', 'DEBUG', 'WARNING']), help='logging type', default='ERROR')
-def restore(restore, bucket, prefix, days, type, versions, permanent_restore, storage_class, update_restore_date, workers, include, exclude, log_level):
+def restore(restore, bucket, prefix, days, type, versions, permanent_restore, restore_to_bucket, storage_class, update_restore_date, workers, include, exclude, log_level):
     """
     restore S3 objects from Glacier Storage Class
     """
@@ -61,7 +62,7 @@ def restore(restore, bucket, prefix, days, type, versions, permanent_restore, st
         click.echo('https://docs.aws.amazon.com/AmazonS3/latest/dev/restoring-objects.html#restoring-objects-expedited-capacity')
         click.echo(30*'=')
     loglevel(log_level)
-    collect_keys(restore, bucket, prefix, days, type, versions, permanent_restore, storage_class, update_restore_date, workers, include, exclude)
+    collect_keys(restore, bucket, prefix, days, type, versions, permanent_restore, restore_to_bucket, storage_class, update_restore_date, workers, include, exclude)
 
 
 @cli.command()
