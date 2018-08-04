@@ -1,4 +1,9 @@
 # Changelog
+
+## [2.8]
+### Fixed
+- fixed an error on the restore option where were not giving any evidence when the key was already restore (I may have broken in some of the recent changes)
+
 ## [2.7]
 ### Added
 - --restore-to-bucket DestinationBucket - This options allows you to make a copy of already restored keys to a new bucket - keeping the original key in glacier

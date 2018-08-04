@@ -116,6 +116,8 @@ def restore_default(x):
                             copy_from_glacier(bucket, key, restore_to_bucket, restore_storage_class, date)
                         else:
                             copy_from_glacier(bucket, key, bucket, restore_storage_class, date)
+                    else:
+                        print('Restoration complete: %s for %s days from now' % (obj.key, days))
         else:
             logging.warning('[Key not in glacier] - Key: %s' % obj.key)
     except ClientError as e:
