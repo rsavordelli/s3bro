@@ -193,4 +193,4 @@ def collect_keys(restore, bucket, prefix, days, type, versions, permanent_restor
             multi_process(restore_default, objects, workers)
     elapsed = time.time() - startTime
     end = round(elapsed, 2)
-    click.echo('Total keys proccessed in total: %s in %ss' %(keys_proccessed, end))
+    click.echo('Total keys processed in total: %s in %ss' %(keys_proccessed, end))

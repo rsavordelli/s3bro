@@ -107,7 +107,7 @@ def scan_objects(scan_objects, bucket, prefix, workers, log_level):
 def scan_objects_v2(scan_objects_v2, bucket, prefix, versions, make_private, workers, log_level):
     """
     scan object ACLs (V2)
-    - The V2 only look for Everyone permissios, while the scan-objects will look for all ACLs
+    - The V2 only look for Everyone permissions, while the scan-objects will look for all ACLs
     - The V2 is capable to reset ACLs back to private (Everyone)
     """
     loglevel(log_level)
