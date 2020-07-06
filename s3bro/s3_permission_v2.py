@@ -36,7 +36,7 @@ def get_permission(x):
                 logging.warning('[Private  - {}/{} VersionId: {}]'.format(bucket, key, ver))
         if pub_perms:
             if mk_private:
-                print("{}/{} VersionId: {} ".format(bucket, key, ver) + colored('public ', 'red') + "({})".format(','.join(pub_perms)) + " Reseting permissions to private")
+                print("{}/{} VersionId: {} ".format(bucket, key, ver) + colored('public ', 'red') + "({})".format(','.join(pub_perms)) + " Resetting permissions to private")
                 try:
                     if ver:
                         res = s3.put_object_acl(Bucket=bucket, Key=key, ACL='private', VersionId=ver)

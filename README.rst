@@ -44,7 +44,7 @@ Restoration completed: glacier/River Flows In You- Lindsey Stirling.mp3 until "S
 Restoration completed: glacier/River Flows In You - A Love Note (Ryan Wong Remix).mp3 until "Sat, 03 Mar 2018 00:00:00 GMT"
 Restoration completed: glacier/ until "Sat, 03 Mar 2018 00:00:00 GMT"
 Restoration completed: glacier/Endless Love {Piano Version} | Beautiful Piano.mp3 until "Sat, 03 Mar 2018 00:00:00 GMT"
-Total keys proccessed: 7 in 5.44s
+Total keys processed: 7 in 5.44s
 
 ============
 Installation
@@ -228,7 +228,7 @@ Scan-Object-V2 Options
 
 >>>
 Usage: s3bro scan-objects-v2 [OPTIONS] [SCAN_OBJECTS_V2]...
-  scan object ACLs (V2) - The V2 only look for Everyone permissios, while
+  scan object ACLs (V2) - The V2 only look for Everyone permissions, while
   the scan-objects will look for all ACLs - The V2 is capable to reset ACLs
   back to private (Everyone)
 Options:
